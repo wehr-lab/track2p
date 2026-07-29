@@ -18,7 +18,30 @@ def save_all_pl_match_mat(all_pl_match_mat, track_ops):
     for (i, all_pl_match_mat) in enumerate(all_pl_match_mat):
         np.save(os.path.join(track_ops.save_path, f'plane{i}_match_mat.npy'), all_pl_match_mat, allow_pickle=True)
 
+def save_match_diagnostics(all_ds_thr_met, all_ds_thr, track_ops):
+    """
+    Persist per-transition, per-plane IOU distributions and the threshold
+    applied to them. Small (one float array + one scalar per transition per
+    plane) -- safe to keep alongside plane{j}_match_mat.npy.
 
+    Saved as a single object-array .npy:
+      match_diagnostics.npy -> dict with keys:
+        'iou_values'  : list[n_transitions][n_planes] of 1D float arrays
+                        (IOU for every matched ref-reg pair in that transition,
+                        BEFORE the threshold cut)
+        'thresholds'  : list[n_transitions][n_planes] of float
+                        (the Otsu/min cutoff actually applied)
+    """
+    diagnostics = {
+        'iou_values': [[np.asarray(thr_met) for thr_met in ds_thr_met]
+                        for ds_thr_met in all_ds_thr_met],
+        'thresholds': [[float(thr) for thr in ds_thr]
+                        for ds_thr in all_ds_thr],
+    }
+    out_path = os.path.join(track_ops.save_path, 'match_diagnostics.npy')
+    np.save(out_path, diagnostics, allow_pickle=True)
+    print('Saved match_diagnostics.npy in ' + track_ops.save_path)
+    
 def npy_to_s2p(track_ops):
 
     for plane in range(track_ops.nplanes):

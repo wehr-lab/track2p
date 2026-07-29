@@ -2,7 +2,7 @@ from track2p.ops.default import DefaultTrackOps
 from types import SimpleNamespace
 
 from track2p.io.s2p_loaders import load_all_imgs, check_nplanes, load_all_ds_stat_iscell, load_all_ds_mean_img, load_all_ds_centroids
-from track2p.io.savers import npy_to_s2p, save_track_ops, save_all_pl_match_mat
+from track2p.io.savers import npy_to_s2p, save_track_ops, save_all_pl_match_mat, save_match_diagnostics
 
 from track2p.register.loop import run_reg_loop, reg_all_ds_all_roi
 from track2p.register.utils import get_all_ds_img_for_reg, get_all_ref_nonref_inters
@@ -11,6 +11,8 @@ from track2p.plot.progress import plot_all_planes
 from track2p.plot.output import plot_reg_img_output, plot_thr_met_hist, plot_n_matched_roi, plot_roi_reg_output, plot_roi_match_multiplane, plot_allroi_match_multiplane
 
 from track2p.match.loop import get_all_ds_assign, get_all_pl_match_mat 
+
+
 import numpy as np
 import os
 import scipy as spicy
@@ -73,6 +75,7 @@ def run_t2p(track_ops):
 
     # 9) save results
     save_track_ops(track_ops)
+    save_match_diagnostics(all_ds_thr_met, all_ds_thr, track_ops)
 
     
     save_all_pl_match_mat(all_pl_match_mat, track_ops)

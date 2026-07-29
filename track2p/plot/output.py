@@ -290,6 +290,19 @@ def plot_roi_match_multiplane(all_ds_mean_img, all_ds_centroids, all_pl_match_ma
         for j in range(len(track_ops.save_path)):
             neuron_ids = pl_neuron_ids[~np.any(all_pl_match_mat[i]==None, axis=1)]
 
+        if len(neuron_ids) == 0:
+            # strict-AND (present in every session) yield is 0 for this plane -- a real,
+            # legitimate outcome at higher session counts (see p^(N-1) decay), not
+            # necessarily a bad-session problem. plt.subplots(0, ncols) raises
+            # ValueError('Number of rows must be a positive integer, not 0'), which used
+            # to abort the whole run here and skip everything downstream (this plot is
+            # cosmetic; plane{j}_match_mat.npy etc. are already saved by this point) --
+            # use fix3_partial_tracks.py on the saved match_mat to see what partial-track
+            # (K<N) yield is actually usable instead.
+            print(f'plot_roi_match_multiplane: 0 ROIs matched across every session in plane {i} '
+                  f'(strict-AND yield is 0) -- skipping per-ROI match plot for this plane.')
+            continue
+
         if len(neuron_ids) < 100:
             plot_roi_match(all_ds_mean_img, all_ds_centroids, all_pl_match_mat, neuron_ids, track_ops, plane_idx=i, win_size=win_size, ch=ch)
         else:
