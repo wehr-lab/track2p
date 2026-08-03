@@ -113,12 +113,29 @@ def init_all_pl_match_mat(all_ds_all_roi_ref, all_ds_assign_thr, track_ops):
         # set up the match matrix for each plane it will be size of all iscell ROIs in the ref recording x number of datasets
         pl_match_mat = np.full((all_ds_all_roi_ref[0][i].shape[2], len(track_ops.all_ds_path)), None)
         all_pl_match_mat.append(pl_match_mat)
-    # populate first row of the match matrices with the matches from the first ref-reg pair
+    # BUG FIX 2026-07-29 (see track2p-tracking-fix/SESSION_LOG.md, ghost-row
+    # investigation on wehr5336): every row here already IS one of session 0's
+    # own iscell-filtered ROIs -- that's what pl_match_mat.shape[0] above is
+    # built from -- so each row's own session-0 self-identity
+    # (pl_match_mat[roi_idx, 0] == roi_idx) is a trivial fact, not something
+    # that needs to be earned by matching. The previous version only recorded
+    # this self-identity for the SUBSET of ROIs that ALSO happened to match
+    # forward into session 1 (all_ds_assign_thr[0][i]), conflating "this ROI
+    # exists in session 0" with "this ROI's session0->session1 transition
+    # succeeded". Any ROI that failed that one specific transition was left
+    # with pl_match_mat[roi_idx, 0] == None -- and this package's own
+    # get_all_pl_match_mat (match/loop.py) as well as track2p-tracking-fix's
+    # gap-tolerant get_all_pl_match_mat_gap both start their per-ROI loop with
+    # "if pl_match_mat[roi_idx, 0] is None: continue", so a None entry here
+    # means the ROI is skipped entirely -- including by gap-tolerant chaining,
+    # whose whole purpose is to rescue exactly this case (retry i->i+2,
+    # i->i+3, ... after i->i+1 fails). So this line was silently preventing
+    # gap-tolerant chaining from ever being attempted on ~half of session 0's
+    # cells (558/1078 in the wehr5336 case), not because chaining failed on
+    # them, but because they never got the chance to be tried.
     for i in range(track_ops.nplanes):
         pl_match_mat = all_pl_match_mat[i]
-        assign_thr = all_ds_assign_thr[0][i] # zeroth dataset, ith plane
-        ref_ind = assign_thr[0]
-        pl_match_mat[ref_ind, 0] = ref_ind
+        pl_match_mat[:, 0] = np.arange(pl_match_mat.shape[0])
 
     return all_pl_match_mat
 
